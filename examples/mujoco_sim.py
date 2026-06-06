@@ -31,17 +31,20 @@ from grasping import GRIPPER, Grasp
 from motion import Motion, to_motion
 from planner import RepositionPlanner
 from robot import RobotModel
+from utils import ctrl_close, ctrl_open, pinch_z
 
 # --------------------------------------------------------------------------- #
 #  Paths / constants                                                           #
 # --------------------------------------------------------------------------- #
 
-GRIPPER_XML = ROOT / "robotiq_2f85" / "2f85.xml"
-CUBE_XML    = ROOT / "cube" / "cube_3x3x3.xml"
+GRIPPER_XML      = ROOT / "robotiq_2f85" / "2f85.xml"
+CUBE_XML         = ROOT / "cube" / "cube_3x3x3.xml"
+ROTATE_TABLE_XML = ROOT / "rotate_table" / "rotate_table.xml"
 
-PINCH_Z  = 0.120   # base_mount → pinch site along gripper +Z [m]
-
-HOME_T_EE = np.array([
+PINCH_Z     = pinch_z()
+TABLE_POS   = [0.0, 0.0, 0.5]
+TABLE_EULER = [180.0, 0.0, 0.0]
+HOME_T_EE   = np.array([
     [1.,  0.,  0.,  0.00],
     [0., -1.,  0.,  0.00],
     [0.,  0., -1.,  0.30],
@@ -79,6 +82,14 @@ def _build_scene() -> tuple[mujoco.MjModel, mujoco.MjData]:
     c_root.pos = [0.0, 0.0, CUBE_HALF]
     c_root.add_freejoint().name = "cube_free"
     c_root.add_frame().attach_body(c_spec.worldbody, "cube", "")
+
+    # Rotate table: fixed at TABLE_POS, Z axis pointing down (180° around X)
+    t_spec   = mujoco.MjSpec.from_file(str(ROTATE_TABLE_XML))
+    t_anchor = spec.worldbody.add_body()
+    t_anchor.name  = "table_anchor"
+    t_anchor.pos   = TABLE_POS
+    t_anchor.quat  = [0.0, 1.0, 0.0, 0.0]   # wxyz: 180° around X → Z points down
+    t_anchor.add_frame().attach_body(t_spec.worldbody, "rt", "")
 
     model = spec.compile()
     data = mujoco.MjData(model)
@@ -122,8 +133,8 @@ def _fmt_pose(T: np.ndarray) -> str:
 
 class GripperCubeSim:
     DT         = 0.002
-    CTRL_OPEN  = 0.0
-    CTRL_CLOSE = 70.0
+    CTRL_OPEN  = ctrl_open()
+    CTRL_CLOSE = ctrl_close()
     MOVE_SPEED = 0.25
     LIN_SPEED  = 0.10
     MIN_STEPS  = 60
@@ -133,6 +144,7 @@ class GripperCubeSim:
         self._grasped        = False
         self._T_tcp_to_cube: np.ndarray | None = None
         self._current_T_ee:  np.ndarray | None = None
+        self._pending_turn:  tuple | None       = None
 
         self.model, self.data = _build_scene()
 
@@ -150,6 +162,9 @@ class GripperCubeSim:
         self._bid_cube      = bid("cube_root")
         self._qpos_adr_cube = self.model.jnt_qposadr[jid("cube_free")]
         self._dof_adr_cube  = self.model.body_dofadr[self._bid_cube]
+
+        self._aid_table_motor = aid("rttable_motor")
+        self._table_angle     = 0.0   # cumulative hinge angle [rad]
 
         self.set_pose(HOME_T_EE)
         mujoco.mj_forward(self.model, self.data)
@@ -258,7 +273,9 @@ class GripperCubeSim:
 
     def execute(self, m: Motion) -> None:
         if m.kind == "turn":
-            print(f"  [turn ] {m.move}")
+            print(f"  [turn ] {m.move}  (face={m.face})")
+            # Store for the following "wait" motion to animate
+            self._pending_turn = (m.face, m.move)
             return
 
         parts = [m.note or m.kind]
@@ -284,7 +301,38 @@ class GripperCubeSim:
             self.open_fingers()
             self.wait(0.3)
         elif m.kind == "wait":
-            self.wait(1.0)
+            pending = getattr(self, "_pending_turn", None)
+            if pending is not None:
+                hold_face, move_str = pending
+                self._pending_turn = None
+                print(f"  [table] spin {move_str}")
+                self.animate_table_turn(hold_face, move_str)
+            else:
+                self.wait(1.0)
+
+    # ------------------------------------------------------------------
+    #  Rotate-table helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_move(move_str: str):
+        suffix = move_str[1:] if len(move_str) > 1 else ""
+        angle  = np.pi if suffix == "2" else (-np.pi / 2 if "'" in suffix else np.pi / 2)
+        return move_str[0], angle
+
+    def _spin_table(self, angle: float, duration: float) -> None:
+        """Spin table hinge by `angle` [rad] over `duration` [s]. Cube untouched."""
+        n  = max(1, round(duration / self.DT))
+        a0 = self._table_angle
+        for i in range(1, n + 1):
+            self.data.ctrl[self._aid_table_motor] = a0 + angle * i / n
+            self.step(1)
+        self._table_angle += angle
+
+    def animate_table_turn(self, hold_face: str, move_str: str) -> None:
+        """Spin table for the turn move. Table fixed at TABLE_POS, cube untouched."""
+        _, angle = self._parse_move(move_str)
+        self._spin_table(angle, 1.0)
 
     def close(self) -> None:
         if self._viewer is not None:

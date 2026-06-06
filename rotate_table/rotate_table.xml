@@ -7,6 +7,7 @@
 
     <body name="table" pos="0 0 0.0">
       <joint name="table_joint" type="hinge" axis="0 0 1" damping="0.1"/>
+      <inertial pos="0 0 0" mass="0.5" diaginertia="1e-4 1e-4 2e-4"/>
       <body name="bound1" pos="0.032 0.0 0.0016">
         <geom name="bound1_geom" type="box" size="0.002 0.04 0.01" rgba="0.6 0.6 1 1"/>
       </body>

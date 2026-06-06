@@ -4,6 +4,9 @@ from typing import Dict, List
 
 import numpy as np
 
+from utils import (cube_half, cube_side, grip_offset, lift_pose, p_rest,
+                   standoff, t_op)
+
 FACES    = ["R", "L", "U", "D", "F", "B"]
 OPPOSITE = {"R": "L", "L": "R", "U": "D", "D": "U", "F": "B", "B": "F"}
 
@@ -13,21 +16,13 @@ N = {
     "F": np.array([1,  0, 0]), "B": np.array([-1, 0, 0]),
 }
 
-GRIP_OFFSET = 0.04   # gripper palm distance from face center [m]
-STANDOFF    = 0.05   # pre-grasp back-off along approach axis [m]
-P_REST      = np.array([0.0, 0.0, 0.0])
-CUBE_SIDE   = 0.057
-CUBE_HALF   = CUBE_SIDE / 2
-
-T_OP: np.ndarray = np.array([
-    [1., 0., 0., 0.20],
-    [0., 1., 0., 0.00],
-    [0., 0., 1., 0.30],
-    [0., 0., 0., 1.  ],
-], dtype=float)
-
-LIFT_POSE = np.eye(4)
-LIFT_POSE[:3, 3] = [0.0, 0.0, 0.20]
+GRIP_OFFSET = grip_offset()
+STANDOFF    = standoff()
+P_REST      = p_rest()
+CUBE_SIDE   = cube_side()
+CUBE_HALF   = cube_half()
+T_OP        = t_op()
+LIFT_POSE   = lift_pose()
 
 
 def Tz(d: float) -> np.ndarray:

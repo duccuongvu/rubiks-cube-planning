@@ -5,12 +5,14 @@ from typing import Optional
 
 import numpy as np
 
+from utils import gripper_finger_length, gripper_n_samples, gripper_open_width
+
 
 @dataclass
 class Gripper:
-    open_width:    float = 0.065
-    finger_length: float = 0.045
-    n_samples:     int   = 3
+    open_width:    float = gripper_open_width()
+    finger_length: float = gripper_finger_length()
+    n_samples:     int   = gripper_n_samples()
 
     def finger_points(self) -> np.ndarray:
         hw = self.open_width / 2.0

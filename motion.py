@@ -78,7 +78,7 @@ def to_motion(actions) -> List[Motion]:
             move_str, hold_grasp = payload
             T_op = hold_grasp.T_op if hold_grasp.T_op is not None else hold_grasp.T_ee
             out.append(Motion("move", T_op,          note="operation", face=hold_grasp.face))
-            out.append(Motion("turn", move=move_str, note="turn"))
+            out.append(Motion("turn", move=move_str, note="turn", face=hold_grasp.face))
             out.append(Motion("wait",                note="dwell 1s"))
             next_from_hold = next_kind == "reposition" and next_payload.from_hold
             if next_kind not in ("turn", "release") and not next_from_hold:

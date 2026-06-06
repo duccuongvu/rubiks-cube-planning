@@ -1,0 +1,25 @@
+cube:
+  side: 0.057           # meters — full side length
+  p_rest: [0.0, 0.0, 0.0]   # cube center rest position in world frame
+
+  # Gripper operation pose (world frame 4x4, written as pos + row-major rotation)
+  t_op:
+    pos: [0.0, 0.00, 0.44]
+    rot: [[1, 0, 0],
+          [0, 1, 0],
+          [0, 0, 1]]
+
+  lift_pos: [0.0, 0.0, 0.20]   # lift waypoint position
+
+
+gripper:
+  pinch_z:       0.125   # base_mount → pinch site along gripper +Z [m]
+  open_width:    0.065   # finger span when open [m]
+  finger_length: 0.045   # usable finger length [m]
+  n_samples:     3       # collision-check points per finger
+  grip_offset:   0.040   # palm distance from face center [m]
+  standoff:      0.050   # pre-grasp back-off distance [m]
+  ctrl_open:     0.0     # finger actuator value — open
+  ctrl_close:    70.0    # finger actuator value — closed
+
+
