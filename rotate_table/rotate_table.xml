@@ -1,0 +1,29 @@
+<mujoco model="rotate_table">
+  <option timestep="0.01" integrator="implicitfast"/>
+
+  <worldbody>
+    <!-- <light pos="0 0 3" dir="0 0 -1" diffuse="1 1 1"/>
+    <geom name="floor" type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1"/> -->
+
+    <body name="table" pos="0 0 0.0">
+      <joint name="table_joint" type="hinge" axis="0 0 1" damping="0.1"/>
+      <body name="bound1" pos="0.032 0.0 0.0016">
+        <geom name="bound1_geom" type="box" size="0.002 0.04 0.01" rgba="0.6 0.6 1 1"/>
+      </body>
+      <body name="bound2" pos="-0.032 0.0 0.0016">
+        <geom name="bound2_geom" type="box" size="0.002 0.04 0.01" rgba="0.6 0.6 1 1"/>
+      </body>
+      <body name="bound3" pos="0.0 0.032 0.0016">
+        <geom name="bound3_geom" type="box" size="0.04 0.002 0.01" rgba="0.6 0.6 1 1"/>
+      </body>
+      <body name="bound4" pos="0.0 -0.032 0.0016">
+        <geom name="bound4_geom" type="box" size="0.04 0.002 0.01" rgba="0.6 0.6 1 1"/>
+      </body>
+    </body>
+
+  </worldbody>
+
+  <actuator>
+    <position  name="table_motor" joint="table_joint" ctrlrange="-3.14159 3.14159"/>
+  </actuator>
+</mujoco>
