@@ -7,11 +7,19 @@ import numpy as np
 
 from geometry import N
 from grasping import Grasp
-from planner import Reposition
 
 
 @dataclass
 class Motion:
+    """One executable waypoint.
+
+    ``kind``:
+      * ``move`` / ``lin`` — go to ``T_ee`` (free-space vs. slow linear). ``q``
+        is the optional pre-solved joint target.
+      * ``close`` / ``open`` — actuate the gripper.
+      * ``turn`` — spin the rotate table for ``move``.
+      * ``wait`` — dwell.
+    """
     kind:    str
     T_ee:    Optional[np.ndarray] = None
     q:       Optional[np.ndarray] = None
@@ -21,7 +29,18 @@ class Motion:
     fingers: Optional[tuple]      = None
 
 
+def _to_pre(kind: str, g: Grasp, note: str, face: Optional[str] = None) -> Motion:
+    """Waypoint at a grasp's pre-grasp (idle) pose."""
+    return Motion(kind, g.T_pre, g.q_pre, note=note, face=face)
+
+
+def _to_grasp(kind: str, g: Grasp, note: str, face: Optional[str] = None) -> Motion:
+    """Waypoint at a grasp's contact pose."""
+    return Motion(kind, g.T_ee, g.q, note=note, face=face)
+
+
 def _finger_faces(grasp: Grasp) -> Optional[tuple]:
+    """Cube faces the two fingers press against (along ±gripper-X), for display."""
     if grasp.R_cube is None:
         return None
     x_world = grasp.T_ee[:3, :3] @ np.array([1.0, 0.0, 0.0])
@@ -37,6 +56,7 @@ def _finger_faces(grasp: Grasp) -> Optional[tuple]:
 
 
 def to_motion(actions) -> List[Motion]:
+    """Lower the planner's abstract action stream into ordered waypoints."""
     out: List[Motion] = []
     action_list = list(actions)
     n = len(action_list)
@@ -49,48 +69,43 @@ def to_motion(actions) -> List[Motion]:
         if kind == "reposition":
             rep = payload
             if rep.from_hold:
-                # Cube still grasped at turn pose — carry straight to new placement.
-                out.append(Motion("move", rep.place.T_pre, rep.place.q_pre, note="idle@place"))
-                out.append(Motion("lin",  rep.place.T_ee,  rep.place.q,     note="place"))
-                out.append(Motion("open"))
+                # Cube still grasped at the turn pose — carry straight to placement.
+                out += [_to_pre("move", rep.place, "idle@place"),
+                        _to_grasp("lin", rep.place, "place"),
+                        Motion("open")]
             else:
-                # Pick: approach → grasp → lift
-                out.append(Motion("move", rep.pick.T_pre,  rep.pick.q_pre,  note="idle@pick"))
-                out.append(Motion("lin",  rep.pick.T_ee,   rep.pick.q,      note="grasp"))
-                out.append(Motion("close"))
-                out.append(Motion("lin",  rep.pick.T_pre,  rep.pick.q_pre,  note="idle"))
-                # Place: lower → open
-                out.append(Motion("move", rep.place.T_pre, rep.place.q_pre, note="idle@place"))
-                out.append(Motion("lin",  rep.place.T_ee,  rep.place.q,     note="place"))
-                out.append(Motion("open"))
+                out += [_to_pre("move", rep.pick, "idle@pick"),   # approach
+                        _to_grasp("lin", rep.pick, "grasp"),
+                        Motion("close"),
+                        _to_pre("lin", rep.pick, "idle"),         # lift
+                        _to_pre("move", rep.place, "idle@place"), # carry
+                        _to_grasp("lin", rep.place, "place"),     # lower
+                        Motion("open")]
             if next_kind != "hold":
-                out.append(Motion("lin", rep.place.T_pre, rep.place.q_pre, note="idle"))
+                out.append(_to_pre("lin", rep.place, "idle"))
 
         elif kind == "hold":
-            fp = _finger_faces(payload)
-            out.append(Motion("move", payload.T_pre, payload.q_pre, note="idle",  face=payload.face))
-            out.append(Motion("lin",  payload.T_ee,  payload.q,     note="grasp", face=payload.face))
-            out.append(Motion("close",                               note="close", fingers=fp))
-            out.append(Motion("move", payload.T_pre, payload.q_pre, note="idle"))
+            out += [_to_pre("move", payload, "idle", payload.face),
+                    _to_grasp("lin", payload, "grasp", payload.face),
+                    Motion("close", note="close", fingers=_finger_faces(payload)),
+                    _to_pre("move", payload, "idle")]
 
         elif kind == "turn":
             move_str, hold_grasp = payload
             T_op = hold_grasp.T_op if hold_grasp.T_op is not None else hold_grasp.T_ee
-            out.append(Motion("move", T_op,          note="operation", face=hold_grasp.face))
-            out.append(Motion("turn", move=move_str, note="turn", face=hold_grasp.face))
-            out.append(Motion("wait",                note="dwell 1s"))
+            out += [Motion("move", T_op, note="operation", face=hold_grasp.face),
+                    Motion("turn", move=move_str, note="turn", face=hold_grasp.face),
+                    Motion("wait", note="dwell 1s")]
             next_from_hold = next_kind == "reposition" and next_payload.from_hold
             if next_kind not in ("turn", "release") and not next_from_hold:
-                out.append(Motion("move", hold_grasp.T_pre, hold_grasp.q_pre, note="idle"))
+                out.append(_to_pre("move", hold_grasp, "idle"))
 
         elif kind == "release":
             if prev_kind == "turn":
-                out.append(Motion("move", payload.T_pre, payload.q_pre, note="idle@release",
-                                  face=payload.face))
-            out.append(Motion("lin",  payload.T_ee, payload.q,     note="lower", face=payload.face))
-            out.append(Motion("open",                               note="open"))
+                out.append(_to_pre("move", payload, "idle@release", payload.face))
+            out += [_to_grasp("lin", payload, "lower", payload.face),
+                    Motion("open", note="open")]
             if next_kind != "reposition":
-                out.append(Motion("move", payload.T_pre, payload.q_pre, note="idle",
-                                  face=payload.face))
+                out.append(_to_pre("move", payload, "idle", payload.face))
 
     return out

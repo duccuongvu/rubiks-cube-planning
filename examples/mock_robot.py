@@ -98,9 +98,6 @@ class MockRobot(RobotModel):
         return Grasp(face=face, T_ee=T_ee, q=np.zeros(6),
                      T_pre=T_pre, q_pre=np.zeros(6), R_cube=R, T_op=T_OP)
 
-    def can_turn(self, move, R):
-        return True
-
 # --------------------------------------------------------------------------- #
 #  Demo                                                                        #
 # --------------------------------------------------------------------------- #
