@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from geometry import LIFT_POSE, N
+from geometry import N
 from grasping import Grasp
 from planner import Reposition
 
@@ -59,7 +59,6 @@ def to_motion(actions) -> List[Motion]:
                 out.append(Motion("lin",  rep.pick.T_ee,   rep.pick.q,      note="grasp"))
                 out.append(Motion("close"))
                 out.append(Motion("lin",  rep.pick.T_pre,  rep.pick.q_pre,  note="idle"))
-                out.append(Motion("move", LIFT_POSE, None,                   note="lift"))
                 # Place: lower → open
                 out.append(Motion("move", rep.place.T_pre, rep.place.q_pre, note="idle@place"))
                 out.append(Motion("lin",  rep.place.T_ee,  rep.place.q,     note="place"))

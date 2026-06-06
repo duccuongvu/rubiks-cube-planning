@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from geometry import CUBE_HALF, FACES, N, OPPOSITE, T_OP, _T, pre_grasp_pose
 from grasping import GRIPPER, Grasp
 from motion import to_motion
-from planner import RepositionPlanner
+from planner import CubePlanner
 from robot import RobotModel
 
 # --------------------------------------------------------------------------- #
@@ -106,7 +106,7 @@ class MockRobot(RobotModel):
 # --------------------------------------------------------------------------- #
 
 if __name__ == "__main__":
-    planner = RepositionPlanner(MockRobot())
+    planner = CubePlanner(MockRobot())
 
     n_edges = sum(len(v) for v in planner.edges.values())
     print(f"orientations : 24")

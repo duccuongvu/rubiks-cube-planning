@@ -19,7 +19,7 @@ class Reposition:
     from_hold: bool = False   # pick face already grasped — no re-grasp needed
 
 
-class RepositionPlanner:
+class CubePlanner:
     def __init__(self, robot: RobotModel, p_rest: np.ndarray = P_REST):
         self.robot  = robot
         self.p_rest = p_rest

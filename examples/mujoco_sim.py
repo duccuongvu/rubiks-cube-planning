@@ -26,10 +26,10 @@ sys.path.insert(0, str(ROOT))
 from manipsim.core.paths import DEFAULT_SCENE_XML
 from manipsim.core.scene import _merge_scene_settings
 
-from geometry import CUBE_HALF, LIFT_POSE, N, P_REST, T_OP, _T, pre_grasp_pose
+from geometry import CUBE_HALF, N, P_REST, T_OP, _T, pre_grasp_pose
 from grasping import GRIPPER, Grasp
 from motion import Motion, to_motion
-from planner import RepositionPlanner
+from planner import CubePlanner
 from robot import RobotModel
 from utils import ctrl_close, ctrl_open, pinch_z
 
@@ -42,7 +42,7 @@ CUBE_XML         = ROOT / "cube" / "cube_3x3x3.xml"
 ROTATE_TABLE_XML = ROOT / "rotate_table" / "rotate_table.xml"
 
 PINCH_Z     = pinch_z()
-TABLE_POS   = [0.0, 0.0, 0.5]
+TABLE_POS   = [0.0, 0.0, 0.5] 
 TABLE_EULER = [180.0, 0.0, 0.0]
 HOME_T_EE   = np.array([
     [1.,  0.,  0.,  0.00],
@@ -117,9 +117,6 @@ def _ee_to_base_mount(T_ee: np.ndarray) -> np.ndarray:
     T[:3, 3] = T_ee[:3, 3] - T_ee[:3, 2] * PINCH_Z
     return T
 
-
-def _is_lift_pose(T: np.ndarray) -> bool:
-    return np.allclose(T, LIFT_POSE, atol=1e-3)
 
 
 def _fmt_pose(T: np.ndarray) -> str:
@@ -250,14 +247,7 @@ class GripperCubeSim:
     def wait(self, duration: float) -> None:
         self.step(max(1, round(duration / self.DT)))
 
-    def _lift_from_current(self) -> np.ndarray:
-        T = (self._current_T_ee if self._current_T_ee is not None else np.eye(4)).copy()
-        T[2, 3] += 0.20
-        return T
-
     def move_to(self, T_ee: np.ndarray, speed: float | None = None) -> None:
-        if _is_lift_pose(T_ee):
-            T_ee = self._lift_from_current()
         T0 = self._current_T_ee
         if T0 is None:
             self.set_pose(T_ee); self.step(5); return
@@ -282,7 +272,7 @@ class GripperCubeSim:
         if m.face: parts.append(f"face={m.face}")
         label = " | ".join(parts)
 
-        if m.kind in ("move", "lin") and m.T_ee is not None and not _is_lift_pose(m.T_ee):
+        if m.kind in ("move", "lin") and m.T_ee is not None:
             print(f"  [{m.kind:5}] {label}")
             print(f"           {_fmt_pose(m.T_ee)}")
         else:
@@ -383,7 +373,7 @@ if __name__ == "__main__":
     render = not args.no_render
 
     p_rest = np.array([0.0, 0.0, CUBE_HALF])
-    planner = RepositionPlanner(MockRobot(), p_rest=p_rest)
+    planner = CubePlanner(MockRobot(), p_rest=p_rest)
     print(f"Planning: {moves}")
     actions, final_ori = planner.plan_sequence(moves)
     motions = to_motion(actions)

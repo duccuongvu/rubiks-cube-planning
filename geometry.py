@@ -4,8 +4,7 @@ from typing import Dict, List
 
 import numpy as np
 
-from utils import (cube_half, cube_side, grip_offset, lift_pose, p_rest,
-                   standoff, t_op)
+from utils import cube_half, cube_side, grip_offset, p_rest, standoff, t_op
 
 FACES    = ["R", "L", "U", "D", "F", "B"]
 OPPOSITE = {"R": "L", "L": "R", "U": "D", "D": "U", "F": "B", "B": "F"}
@@ -22,7 +21,6 @@ P_REST      = p_rest()
 CUBE_SIDE   = cube_side()
 CUBE_HALF   = cube_half()
 T_OP        = t_op()
-LIFT_POSE   = lift_pose()
 
 
 def Tz(d: float) -> np.ndarray:

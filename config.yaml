@@ -9,8 +9,6 @@ cube:
           [0, 1, 0],
           [0, 0, 1]]
 
-  lift_pos: [0.0, 0.0, 0.20]   # lift waypoint position
-
 
 gripper:
   pinch_z:       0.125   # base_mount → pinch site along gripper +Z [m]

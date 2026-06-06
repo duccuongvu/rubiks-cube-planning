@@ -43,11 +43,6 @@ def p_rest() -> np.ndarray:
 def t_op() -> np.ndarray:
     return _make_T(_cfg()["cube"]["t_op"])
 
-def lift_pose() -> np.ndarray:
-    T = np.eye(4)
-    T[:3, 3] = np.array(_cfg()["cube"]["lift_pos"], dtype=float)
-    return T
-
 
 # ── gripper ───────────────────────────────────────────────────────────────── #
 
