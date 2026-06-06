@@ -2,11 +2,15 @@
 
 Motion planning and MuJoCo simulation for solving a Rubik's cube with a single robotic gripper and a motorized rotate table.
 
+> **⚠️ Known Limitation:** Contact between the rotate table and the cube is not physically simulated. The cube is kinematically pinned to the gripper during face turns; table rotation does not drive the cube via friction/contact forces.
+
 ## Overview
 
 The system plans the minimal sequence of gripper repositions and face turns needed to execute any Rubik's cube move sequence. A MuJoCo simulation visualizes the full motion with a Robotiq 2F-85 gripper and a motorized rotate table.
 
-![Gripper with cube simulation](gripper_with_cube.gif)
+<p align="center">
+  <img src="gripper_with_cube.gif" width="600"/>
+</p>
 
 ```
 Rubik move sequence  →  CubePlanner  →  motion waypoints  →  MuJoCo sim
