@@ -6,6 +6,8 @@ Motion planning and MuJoCo simulation for solving a Rubik's cube with a single r
 
 The system plans the minimal sequence of gripper repositions and face turns needed to execute any Rubik's cube move sequence. A MuJoCo simulation visualizes the full motion with a Robotiq 2F-85 gripper and a motorized rotate table.
 
+![Gripper with cube simulation](gripper_with_cube.gif)
+
 ```
 Rubik move sequence  →  CubePlanner  →  motion waypoints  →  MuJoCo sim
                          (BFS over                            (gripper + table)
